@@ -18,6 +18,13 @@ typedef struct _threadArg {
     char letters[BUFFER_SIZE];
     int numbers[BUFFER_SIZE];
 } ThreadArg;
+
+typedef struct _resultSet {
+    ThreadArg input;
+    int results[BUFFER_SIZE];
+    int resultCount;
+} ResultSet;
+
 //
 //char string[255] = {0};
 //
@@ -66,25 +73,46 @@ void *producer (void *arg) {
     ThreadArg *threadArg = (ThreadArg*) arg;
     randomizeIntArray(threadArg->numbers, BUFFER_SIZE);
     randomizeCharArray(threadArg->letters, BUFFER_SIZE);
+
+    return NULL;
 }
 
 void *consumer (void *arg) {
-    ThreadArg *threadArg = (ThreadArg*) arg;
-
+    ResultSet *resultSet = (ResultSet *) arg;
+    for (int i = 0; i < BUFFER_SIZE; ++i) {
+        if (resultSet->input.numbers[i] % 2 == 0) {
+            resultSet->resultCount++;
+            printf("input %d:%d\n",i ,resultSet->input.numbers[i]);
+            resultSet->results[i] = resultSet->input.numbers[i];
+        }
+    }
+    return NULL;
 }
 
 
 int main (int argc, char *argv[]) {
     srand(time(NULL));
-    pthread_t threadId;
-    ThreadArg threadArg = {{}, {}};
-    pthread_create(&threadId, NULL, producer, (void*) &threadArg);
-    pthread_join( threadId, NULL);
+    pthread_t producerId;
+    pthread_t consumerId;
 
-//    char numericString[MAX_STRING_LENGTH];
+    ThreadArg threadArg = {{}, {}};
+
+    pthread_create(&producerId, NULL, producer, (void*) &threadArg);
+    ResultSet resultSet = {threadArg, {}, 0};
+    pthread_create(&consumerId, NULL, consumer, (void *) &resultSet);
+
+    pthread_join(producerId, NULL);
+    pthread_join(consumerId, NULL);
+
+
+
     intArrayToString(threadArg.numbers, BUFFER_SIZE); //, numericString, MAX_STRING_LENGTH);
     printf("letters:%s\n", threadArg.letters);
-//    printf("numbers:%s\n", numericString);
+
+    printf("EVENS\n------------\n");
+    for (int i = 0; i < resultSet.resultCount ; ++i) {
+        printf("%d\n", resultSet.results[i]);
+    }
 
     return 0;
 }
