@@ -6,21 +6,23 @@
 #include <limits.h>
 #include <stdbool.h>
 
-#define BUFFER_SIZE 16
-#define FLOOR -100
-#define CEILING 100
-#define MAX_STRING_LENGTH 512
-#define BASE_ASCII_CHARACTER '<'
-#define ASCII_CODE_FLOOR 60
-#define ASCII_CODE_CEILING 126
 
-typedef struct _threadArg {
+#define FLOOR 100
+#define CEILING 160
+#define BUFFER_SIZE 16
+#define LOWEST_ASCII_CODE 60
+#define HIGHEST_ASCII_CODE 126
+#define MAX_STRING_LENGTH 512
+# define MAX_PRODUCER_THREADS 3
+# define MAX_CONSUMER_THREADS 4
+
+typedef struct ThreadArg {
     char letters[BUFFER_SIZE];
     int numbers[BUFFER_SIZE];
 } ThreadArg;
 
-typedef struct _resultSet {
-    ThreadArg input;
+typedef struct ResultSet {
+    ThreadArg *input;
     int results[BUFFER_SIZE];
     int resultCount;
 } ResultSet;
@@ -39,11 +41,10 @@ typedef struct _resultSet {
 
 char * intArrayToString (int intArray[], size_t intArraySize) { //}, char destination [], size_t stringLength) {
     char string[] = "";
-//    char string[MAX_STRING_LENGTH] = {0};
-//    strcpy(string, "");
     for (int i = 0; i < intArraySize; ++i) {
         char buf[4];
         int n = sprintf( buf, "%d", intArray[i]);
+        strcat(buf, ", ");
 //        strcat(string, buf);
         printf("%s", buf);
 //        printf("%d\n", intArray[i]);
@@ -63,9 +64,18 @@ void randomizeIntArray (int array[], size_t size) {
 
 void randomizeCharArray (char array[], size_t size) {
     for (int i = 0; i < size; ++i) {
-        int offset = (int) (rand() % (ASCII_CODE_CEILING - ASCII_CODE_FLOOR + 1) + ASCII_CODE_FLOOR);
-        array[i] = rand() % (ASCII_CODE_CEILING - ASCII_CODE_FLOOR + 1) + ASCII_CODE_FLOOR;
+        int offset = (rand() % (HIGHEST_ASCII_CODE - LOWEST_ASCII_CODE + 1)
+                + LOWEST_ASCII_CODE);
+        array[i] = rand() % (HIGHEST_ASCII_CODE - LOWEST_ASCII_CODE + 1) + LOWEST_ASCII_CODE;
 //        printf("array[%d]=%c\n", i, array[i]);
+    }
+}
+
+void removeEvens (int array[BUFFER_SIZE]) {
+    for (int i = 0; i < BUFFER_SIZE -1 ; ++i) {
+        if (array[i] % 2 == 0 && array[i+1] %2 != 0) {
+            array[i] = array[i+1];
+        }
     }
 }
 
@@ -80,12 +90,13 @@ void *producer (void *arg) {
 void *consumer (void *arg) {
     ResultSet *resultSet = (ResultSet *) arg;
     for (int i = 0; i < BUFFER_SIZE; ++i) {
-        if (resultSet->input.numbers[i] % 2 == 0) {
+        if (resultSet->input->numbers[i] % 2 == 0) {
             resultSet->resultCount++;
-            printf("input %d:%d\n",i ,resultSet->input.numbers[i]);
-            resultSet->results[i] = resultSet->input.numbers[i];
+            printf("input %d:%d\n",i ,resultSet->input->numbers[i]);
+            resultSet->results[i] = resultSet->input->numbers[i];
         }
     }
+    removeEvens(resultSet->input->numbers);
     return NULL;
 }
 
@@ -98,7 +109,7 @@ int main (int argc, char *argv[]) {
     ThreadArg threadArg = {{}, {}};
 
     pthread_create(&producerId, NULL, producer, (void*) &threadArg);
-    ResultSet resultSet = {threadArg, {}, 0};
+    ResultSet resultSet = {&threadArg, {}, 0};
     pthread_create(&consumerId, NULL, consumer, (void *) &resultSet);
 
     pthread_join(producerId, NULL);
@@ -113,6 +124,7 @@ int main (int argc, char *argv[]) {
     for (int i = 0; i < resultSet.resultCount ; ++i) {
         printf("%d\n", resultSet.results[i]);
     }
+    printf("initial:%d, ", %d{} %d: i < t)
 
     return 0;
 }
